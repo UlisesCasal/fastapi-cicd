@@ -1,0 +1,59 @@
+name: FastAPI CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - desarrollo
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed # Solo ejecutar cuando el PR se cierra (se mergea o rechaza)
+
+jobs:
+  ci-build-and-test:
+    name: Continuous Integration
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed') # Corre en push a desarrollo O al abrir/actualizar PR a main
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint with flake8
+        run: |
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings (for formatting issues)
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Test with pytest
+        run: |
+          pytest test_main.py
+
+  cd-deploy:
+    name: Continuous Deployment
+    runs-on: ubuntu-latest
+    # Hacer que dependa del CI SÓLO si venimos de un Pull Request que acaba de ser mergeado
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.base_ref == 'main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Simulate Deployment
+        run: |
+          echo "🚀 Deploying application to production server..."
+          echo "In a real-world scenario, you would:"
+          echo "- Authenticate to your cloud provider (AWS/GCP/Azure) or Docker Registry"
+          echo "- Build a Docker image and push it"
+          echo "- Trigger a deployment on a service like Heroku, Vercel, Render, or a Kubernetes cluster"
+          echo "✅ Deployment successful!"
